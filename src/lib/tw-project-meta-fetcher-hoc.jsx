@@ -3,9 +3,8 @@ import PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 import log from './log';
 
-import {getIsShowingWithId} from '../reducers/project-state';
 import {setProjectTitle} from '../reducers/project-title';
-import {setAuthor} from '../reducers/tw';
+import {setAuthor, setDescription} from '../reducers/tw';
 
 const API_URL = 'https://trampoline.turbowarp.org/proxy/projects/$id';
 
@@ -23,36 +22,43 @@ const TWProjectMetaFetcherHOC = function (WrappedComponent) {
             this.initialTitle = document.title;
         }
         shouldComponentUpdate (nextProps) {
-            return this.props.isShowingWithId !== nextProps.isShowingWithId;
+            return this.props.projectId !== nextProps.projectId;
         }
-        componentDidUpdate (prevProps) {
-            this.props.onSetProjectTitle('');
+        componentDidUpdate () {
+            // project title resetting is handled in titled-hoc.jsx
             this.props.onSetAuthor('', '');
-            if (this.props.isShowingWithId && !prevProps.isShowingWithId) {
-                const projectId = this.props.projectId;
-                fetchProjectMeta(projectId)
-                    .then(data => {
-                        // If project ID changed, ignore the results.
-                        if (this.props.projectId !== projectId) {
-                            return;
-                        }
-                        const title = data.title;
-                        if (title) {
-                            document.title = `${title} - TurboWarp`;
-                            this.props.onSetProjectTitle(title);
-                        }
-                        const authorName = data.author.username;
-                        const authorThumbnail = data.author.profile.images['32x32'];
-                        if (authorName && authorThumbnail) {
-                            this.props.onSetAuthor(authorName, authorThumbnail);
-                        }
-                    })
-                    .catch(err => {
-                        log.warn('cannot fetch project meta', err);
-                    });
-            } else {
-                document.title = this.initialTitle;
+            this.props.onSetDescription('', '');
+            const projectId = this.props.projectId;
+            document.title = this.initialTitle;
+            // Don't try to load metadata for empty projects.
+            if (projectId === '0') {
+                return;
             }
+            fetchProjectMeta(projectId)
+                .then(data => {
+                    // If project ID changed, ignore the results.
+                    if (this.props.projectId !== projectId) {
+                        return;
+                    }
+                    const title = data.title;
+                    if (title) {
+                        document.title = `${title} - TurboWarp`;
+                        this.props.onSetProjectTitle(title);
+                    }
+                    const authorName = data.author.username;
+                    const authorThumbnail = data.author.profile.images['32x32'];
+                    if (authorName && authorThumbnail) {
+                        this.props.onSetAuthor(authorName, authorThumbnail);
+                    }
+                    const instructions = data.instructions || '';
+                    const credits = data.description || '';
+                    if (instructions || credits) {
+                        this.props.onSetDescription(instructions, credits);
+                    }
+                })
+                .catch(err => {
+                    log.warn('cannot fetch project meta', err);
+                });
         }
         componentWillUnmount () {
             document.title = this.initialTitle;
@@ -60,7 +66,6 @@ const TWProjectMetaFetcherHOC = function (WrappedComponent) {
         render () {
             const {
                 /* eslint-disable no-unused-vars */
-                isShowingWithId,
                 projectId,
                 /* eslint-enable no-unused-vars */
                 ...props
@@ -73,22 +78,22 @@ const TWProjectMetaFetcherHOC = function (WrappedComponent) {
         }
     }
     ProjectMetaFetcherComponent.propTypes = {
-        isShowingWithId: PropTypes.bool,
         projectId: PropTypes.string,
         onSetAuthor: PropTypes.func,
+        onSetDescription: PropTypes.func,
         onSetProjectTitle: PropTypes.func
     };
-    const mapStateToProps = state => {
-        const loadingState = state.scratchGui.projectState.loadingState;
-        return {
-            isShowingWithId: getIsShowingWithId(loadingState),
-            projectId: state.scratchGui.projectState.projectId
-        };
-    };
+    const mapStateToProps = state => ({
+        projectId: state.scratchGui.projectState.projectId
+    });
     const mapDispatchToProps = dispatch => ({
         onSetAuthor: (username, thumbnail) => dispatch(setAuthor({
             username,
             thumbnail
+        })),
+        onSetDescription: (instructions, credits) => dispatch(setDescription({
+            instructions,
+            credits
         })),
         onSetProjectTitle: title => dispatch(setProjectTitle(title))
     });
