@@ -1,3 +1,5 @@
+import './import-first';
+
 import ReactDOM from 'react-dom';
 import React from 'react';
 import {compose} from 'redux';
@@ -7,13 +9,8 @@ import TWStateManagerHOC from '../lib/tw-state-manager-hoc.jsx';
 import TWFullscreenResizerHOC from '../lib/tw-fullscreen-resizer-hoc.jsx';
 
 import GUI from './render-gui.jsx';
+import appTarget from './app-target';
 
-const appTarget = document.createElement('div');
-document.body.appendChild(appTarget);
-document.body.classList.add('tw-loaded');
-
-// Read the project ID from location.hash once.
-// URL parameters are not used for this as hash is already used elsewhere, and this won't tell TurboWarp.org which project is being loaded. (I don't want to know!)
 const projectId = location.hash.substr(1);
 
 let vm;
@@ -42,4 +39,5 @@ ReactDOM.render(<WrappedGUI
     projectId={projectId}
     onVmInit={onVmInit}
     onProjectLoaded={onProjectLoaded}
+    routingStyle="hash"
 />, appTarget);
