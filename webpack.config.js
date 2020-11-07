@@ -19,10 +19,6 @@ if (root.length > 0 && !root.endsWith('/')) {
 }
 
 const htmlWebpackPluginCommon = {
-    plausible: process.env.PLAUSIBLE_HOST ? {
-        host: process.env.PLAUSIBLE_HOST,
-        domain: process.env.PLAUSIBLE_DOMAIN
-    } : null,
     root: root
 };
 
@@ -32,7 +28,15 @@ const base = {
     devServer: {
         contentBase: path.resolve(__dirname, 'build'),
         host: '0.0.0.0',
-        port: process.env.PORT || 8601
+        port: process.env.PORT || 8601,
+        // allows ROUTING_STYLE=wildcard to work properly
+        historyApiFallback: {
+            rewrites: [
+                {from: /^\/\d+\/?$/, to: '/index.html'},
+                {from: /^\/\d+\/fullscreen\/?$/, to: '/fullscreen.html'},
+                {from: /^\/\d+\/editor\/?$/, to: '/editor.html'}
+            ]
+        }
     },
     output: {
         library: 'GUI',
@@ -148,7 +152,7 @@ module.exports = [
                 'process.env.ANNOUNCEMENT': process.env.ANNOUNCEMENT ? '"' + process.env.ANNOUNCEMENT + '"' : '""',
                 'process.env.ROOT': JSON.stringify(root),
                 'process.env.ROUTING_STYLE': JSON.stringify(process.env.ROUTING_STYLE || 'filehash'),
-                'process.env.PLAUSIBLE_HOST': JSON.stringify(process.env.PLAUSIBLE_HOST),
+                'process.env.PLAUSIBLE_API': JSON.stringify(process.env.PLAUSIBLE_API),
                 'process.env.PLAUSIBLE_DOMAIN': JSON.stringify(process.env.PLAUSIBLE_DOMAIN)
             }),
             new HtmlWebpackPlugin({
